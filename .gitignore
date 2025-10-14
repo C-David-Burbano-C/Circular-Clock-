@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+# Django
+*.sqlite3
+/staticfiles/
+media/
+# Editor
+.vscode/
+.idea/
+# pytest
+.pytest_cache/
+# mypy
+.mypy_cache/
+# distribution
+dist/
+build/

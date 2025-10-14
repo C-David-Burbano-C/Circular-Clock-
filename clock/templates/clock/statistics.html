@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - Circular Clock</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255,255,255,0.06);
+            --glass-border: rgba(255,255,255,0.08);
+            --accent: #60a5fa;
+        }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e6eef8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .stats-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+            backdrop-filter: blur(12px);
+            color: #e6eef8;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(59,130,246,0.08));
+            color: #e6eef8;
+            border-radius: 10px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        a.btn-back {
+            background: rgba(255,255,255,0.04);
+            color: #e6eef8;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        /* Recent activity table styles (dark/glass) */
+        .table-responsive .table {
+            color: #e6eef8;
+        }
+
+        .table-responsive .table thead tr th {
+            color: #cbdcff;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            background: transparent;
+        }
+
+        /* Force table wrappers to be transparent in case Bootstrap applies a white background */
+        .table-responsive, .table-responsive .table, .table-responsive .table thead, .table-responsive .table tbody {
+            background: transparent !important;
+        }
+
+        .table-responsive .table tbody tr.recent-row {
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            border-radius: 8px;
+            transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .table-responsive .table tbody tr.recent-row td {
+            vertical-align: middle;
+            color: #eaf4ff;
+            border-top: 0;
+        }
+
+        .table-responsive .table tbody tr.recent-row:hover {
+            background: rgba(96,165,250,0.06);
+            transform: translateY(-2px);
+        }
+
+        /* Aggressive overrides to prevent white background from Bootstrap or browser defaults */
+        .table-responsive .table tr, .table-responsive .table td, .table-responsive .table tbody, .table-responsive .table thead {
+            background: transparent !important;
+            color: inherit !important;
+        }
+
+        .table.table-hover tbody tr:hover td, .table.table-hover tbody tr:hover {
+            background: rgba(96,165,250,0.06) !important;
+        }
+
+        /* Remove default cell backgrounds on selection/focus */
+        .table-responsive .table td:focus, .table-responsive .table td:active, .table-responsive .table tr:focus {
+            background: transparent !important;
+            outline: none !important;
+        }
+
+        .badge-custom {
+            background: rgba(34,197,94,0.12);
+            color: #bbf7d0;
+            border: 1px solid rgba(34,197,94,0.18);
+            padding: 0.42rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+        /* Scroll container for Recent Activity to prevent excessively long tables */
+        .recent-activity-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 8px; /* spacing for scrollbar */
+        }
+        /* Custom scrollbar (WebKit) */
+        .recent-activity-scroll::-webkit-scrollbar {
+            width: 10px;
+        }
+        .recent-activity-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .recent-activity-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.06);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+        .recent-activity-scroll:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.10);
+        }
+        /* Firefox scrollbar */
+        .recent-activity-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.06) transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header -->
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h1 class="mb-0" style="font-weight:700; color:var(--accent);">Estadísticas</h1>
+                        <div class="small text-white-50">Resumen y actividad reciente</div>
+                    </div>
+                    <div>
+                        <a href="{% url 'clock:index' %}" class="btn btn-back">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Volver al Reloj
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ total_active_alarms }}</div>
+                            <div>Total Alarmas Activas</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ active_alarms_today }}</div>
+                            <div>Alarmas Activas Hoy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ triggered_today }}</div>
+                            <div>Alarmas Disparadas Hoy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-item">
+                            <div class="stat-number">{{ total_triggers }}</div>
+                            <div>Alarmas Disparadas Totales</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="stats-card p-4 mb-4">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h4 class="mb-0">Actividad Reciente</h4>
+                                <div>
+                                    <button id="clearLocalActivityBtn" class="btn btn-sm btn-outline-light" onclick="clearLocalRecentActivity()">Borrar actividad local</button>
+                                </div>
+                            </div>
+                            {% if recent_logs %}
+                            <div class="table-responsive recent-activity-scroll" style="background: transparent;">
+                                <table class="table table-borderless table-hover text-white" style="background: transparent;">
+                                    <thead>
+                                        <tr class="text-white-50 small">
+                                            <th>Alarma</th>
+                                            <th>Hora</th>
+                                            <th>Fecha</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log in recent_logs %}
+                                        <tr class="recent-row" data-triggered-at="{{ log.triggered_at|date:"c" }}">
+                                            <td>
+                                                {% if log.alarm_title %}
+                                                    {{ log.alarm_title }}
+                                                {% elif log.alarm %}
+                                                    {{ log.alarm.title }}
+                                                {% else %}
+                                                    Alarma
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if log.alarm %}
+                                                    {{ log.alarm.hour|stringformat:"02d" }}:{{ log.alarm.minute|stringformat:"02d" }}
+                                                {% else %}
+                                                    --:--
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ log.triggered_at|date:"d M Y H:i" }}</td>
+                                            <td><span class="badge-custom">{{ log.get_status_display }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-white-50">
+                                <i class="bi bi-clock display-4"></i>
+                                <p class="mt-3">No hay actividad reciente</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-lg-6">
+                            <h4 class="mb-3">Alarmas en los últimos 7 días</h4>
+                            <canvas id="alarmsChart" width="400" height="220"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Usage Information -->
+                <div class="stats-card p-4 mt-4">
+                    <h4 class="mb-3">Información del Sistema</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Funciones</h6>
+                            <ul class="list-unstyled small text-white-50">
+                                <li>• Listas Circulares Dobles</li>
+                                <li>• Hora de Colombia (UTC-5)</li>
+                                <li>• Formato 12h/24h</li>
+                                <li>• Sistema de Alarmas</li>
+                                <li>• Análisis de Datos</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Tecnologías</h6>
+                            <ul class="list-unstyled small text-white-50">
+                                <li>• Python + Django</li>
+                                <li>• Bootstrap 5</li>
+                                <li>• SQLite</li>
+                                <li>• JavaScript (Chart.js)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function(){
+            try {
+                const payload = JSON.parse('{{ chart_json|escapejs }}');
+                const labels = payload.labels || [];
+                const data = payload.data || [];
+                const ctx = document.getElementById('alarmsChart');
+                if (ctx) {
+                    const c = ctx.getContext('2d');
+                    new Chart(c, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Alarmas disparadas',
+                                data: data,
+                                borderColor: 'rgba(96,165,250,0.95)',
+                                backgroundColor: 'rgba(96,165,250,0.18)',
+                                tension: 0.35,
+                                fill: true,
+                                pointRadius: 4
+                            }]
+                        },
+                        options: {
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Could not render chart', e);
+            }
+        })();
+    </script>
+    <script>
+        // Merge local stored recent activity into the Recent Activity table on page load
+        (function(){
+            try {
+                const cutoffRaw = localStorage.getItem('recent_activity_cutoff_v1');
+                const cutoffDate = cutoffRaw ? new Date(cutoffRaw) : null;
+
+                // If there's a cutoff already set, apply it to server rows (remove older rows)
+                if (cutoffDate) {
+                    const tbody = document.querySelector('.table-responsive .table tbody');
+                    if (tbody) {
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        rows.forEach(row => {
+                            const ts = row.getAttribute('data-triggered-at');
+                            if (!ts) return; // keep rows without timestamp
+                            try { if (new Date(ts) < cutoffDate) row.remove(); } catch(e) {}
+                        });
+                        if (!tbody.querySelector('tr')) tbody.innerHTML = `<tr class="recent-row"><td colspan="4" class="text-white-50 text-center py-4">No hay actividad reciente</td></tr>`;
+                    }
+                    // Reflect cleared state on the button
+                    const btn = document.getElementById('clearLocalActivityBtn');
+                    if (btn) { btn.disabled = true; btn.innerText = 'Actividad borrada'; }
+                }
+
+                const raw = localStorage.getItem('recent_activity_logs_v1');
+                if (!raw) return;
+                const arr = JSON.parse(raw);
+                if (!arr || !arr.length) return;
+                const tbody = document.querySelector('.table-responsive .table tbody');
+                if (!tbody) return;
+                // Prepend local items (up to 10), skipping those older than cutoff
+                arr.slice(0,10).forEach(log => {
+                    if (cutoffDate && log.triggered_at) {
+                        try { if (new Date(log.triggered_at) < cutoffDate) return; } catch (e) { }
+                    }
+
+                    // Deduplicate: if there's already a row with same data-triggered-at, skip
+                    if (log.triggered_at) {
+                        const exists = Array.from(tbody.querySelectorAll('tr')).some(r => {
+                            const ts = r.getAttribute('data-triggered-at');
+                            if (!ts) return false;
+                            try {
+                                const a = new Date(ts).getTime();
+                                const b = new Date(log.triggered_at).getTime();
+                                if (!isNaN(a) && !isNaN(b)) {
+                                    // consider same if within 2 seconds
+                                    return Math.abs(a - b) <= 2000;
+                                }
+                            } catch (e) {
+                                // fall back to string compare
+                            }
+                            return ts === log.triggered_at;
+                        });
+                        if (exists) return; // skip duplicate
+                    }
+
+                    // Fallback dedupe: match by title + time + status if no timestamp or timestamp mismatch
+                    const title = (log.title || 'Alarma').toString().trim();
+                    const time = (log.time || '').toString().trim();
+                    const status = (log.status || '').toString().trim();
+                    const fallbackExists = Array.from(tbody.querySelectorAll('tr')).some(r => {
+                        const cells = r.querySelectorAll('td');
+                        if (!cells || cells.length < 4) return false;
+                        const rTitle = cells[0].textContent.trim();
+                        const rTime = cells[1].textContent.trim();
+                        const rStatus = cells[3].textContent.trim();
+                        return rTitle === title && rTime === time && (status === '' || rStatus === status || rStatus.includes(status));
+                    });
+                    if (fallbackExists) return;
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'recent-row local-activity';
+                    if (log.triggered_at) tr.setAttribute('data-triggered-at', log.triggered_at);
+                    const date = log.triggered_at ? new Date(log.triggered_at).toLocaleString() : '';
+                    tr.innerHTML = `
+                        <td>${title}</td>
+                        <td>${time}</td>
+                        <td>${date}</td>
+                        <td><span class="badge-custom">${status || 'Disparada'}</span></td>
+                    `;
+                    // Insert at top
+                    if (tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
+                    else tbody.appendChild(tr);
+                });
+            } catch (e) {
+                console.warn('Could not merge local recent activity', e);
+            }
+        })();
+
+        // Clear local recent activity (localStorage) and remove local rows from the table
+        function clearLocalRecentActivity() {
+            if (!confirm('¿Borrar la actividad reciente almacenada localmente? Esta acción no afecta los registros del servidor.')) return;
+            try {
+                const cutoff = new Date().toISOString();
+                // Persist cutoff so the hidden state survives reloads
+                try { localStorage.setItem('recent_activity_cutoff_v1', cutoff); } catch (e) { console.warn('Could not persist cutoff', e); }
+
+                // Update localStorage: keep only items with triggered_at >= cutoff (i.e. newer)
+                try {
+                    const key = 'recent_activity_logs_v1';
+                    const raw = localStorage.getItem(key);
+                    if (raw) {
+                        const arr = JSON.parse(raw);
+                        const filtered = arr.filter(it => {
+                            if (!it.triggered_at) return true; // keep items without timestamp
+                            try { return new Date(it.triggered_at) >= new Date(cutoff); } catch (e) { return true; }
+                        });
+                        localStorage.setItem(key, JSON.stringify(filtered));
+                    }
+                } catch (e) {
+                    console.warn('Could not prune localStorage recent activity', e);
+                }
+
+                // Remove DOM rows with data-triggered-at older than cutoff
+                const tbody = document.querySelector('.table-responsive .table tbody');
+                if (tbody) {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    rows.forEach(row => {
+                        const ts = row.getAttribute('data-triggered-at');
+                        if (!ts) return; // skip rows without timestamp (keep server logs without timestamp)
+                        try {
+                            if (new Date(ts) < new Date(cutoff)) row.remove();
+                        } catch (e) {
+                            // ignore parse errors
+                        }
+                    });
+                    // If tbody is now empty, show placeholder
+                    if (!tbody.querySelector('tr')) {
+                        tbody.innerHTML = `
+                            <tr class="recent-row">
+                                <td colspan="4" class="text-white-50 text-center py-4">No hay actividad reciente</td>
+                            </tr>
+                        `;
+                    }
+                }
+                // Disable the button to reflect the cleared state
+                const btn = document.getElementById('clearLocalActivityBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = 'Actividad borrada';
+                }
+                showToast('Actividad local borrada', 'success');
+            } catch (e) {
+                console.warn('Could not clear local recent activity', e);
+                showToast('No se pudo borrar la actividad local', 'error');
+            }
+        }
+
+        // Re-enable clear button if new activity appears after a cutoff
+        (function setupClearButtonAutoReenable(){
+            const btn = document.getElementById('clearLocalActivityBtn');
+            if (!btn) return;
+
+            function getCutoff() {
+                const c = localStorage.getItem('recent_activity_cutoff_v1');
+                return c ? new Date(c) : null;
+            }
+
+            function hasNewerLocalActivity() {
+                try {
+                    const raw = localStorage.getItem('recent_activity_logs_v1');
+                    if (!raw) return false;
+                    const arr = JSON.parse(raw);
+                    if (!arr || !arr.length) return false;
+                    const cutoff = getCutoff();
+                    if (!cutoff) return arr.length > 0;
+                    return arr.some(it => {
+                        if (!it.triggered_at) return true; // treat undated as new
+                        try { return new Date(it.triggered_at) >= cutoff; } catch(e) { return true; }
+                    });
+                } catch (e) { return false; }
+            }
+
+            function updateClearButtonState() {
+                const cutoff = getCutoff();
+                if (!cutoff) {
+                    // no cutoff => enabled
+                    btn.disabled = false;
+                    btn.innerText = 'Borrar actividad local';
+                    return;
+                }
+                // If there's any newer activity since cutoff, enable button
+                if (hasNewerLocalActivity()) {
+                    btn.disabled = false;
+                    btn.innerText = 'Borrar actividad local';
+                } else {
+                    btn.disabled = true;
+                    btn.innerText = 'Actividad borrada';
+                }
+            }
+
+            // Listen for storage events (cross-tab updates)
+            window.addEventListener('storage', (ev) => {
+                if (ev.key === 'recent_activity_logs_v1' || ev.key === 'recent_activity_cutoff_v1') {
+                    updateClearButtonState();
+                }
+            });
+
+            // Poll periodically to detect same-tab updates (fallback)
+            setInterval(updateClearButtonState, 5000);
+
+            // Initial state
+            updateClearButtonState();
+        })();
+    </script>
+</body>
+</html>

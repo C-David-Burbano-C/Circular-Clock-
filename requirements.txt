@@ -1,0 +1,37 @@
+# Modern Circular Clock - Colombia
+# Django Web Application Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core Django Framework
+Django>=4.2.0
+djangorestframework>=3.14.0
+
+# Time zone handling for Colombia (UTC-5)
+pytz>=2023.3
+
+# Real-time communication
+channels>=4.0.0
+channels-redis>=4.1.0
+
+# Modern frontend libraries
+django-bootstrap5>=23.3
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+
+# Database
+django-environ>=0.10.0
+
+# API and JSON handling
+django-cors-headers>=4.3.0
+
+# Development tools
+django-debug-toolbar>=4.2.0
+
+# Production server
+gunicorn>=21.2.0
+
+# Static files handling
+whitenoise>=6.6.0
+
+# For modern UI components
+django-widget-tweaks>=1.5.0

@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Reloj Circular - Colombia</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #3b82f6;
+            --accent-blue: #60a5fa;
+            --light-blue: #dbeafe;
+            --dark-blue: #1e40af;
+            --gradient-start: #0f172a;
+            --gradient-end: #1e293b;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 50%, var(--primary-blue) 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #f8fafc;
+        }
+        
+        .clock-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        .digital-clock {
+            font-size: 4.5rem;
+            font-weight: 200;
+            color: #f1f5f9;
+            text-shadow: 0 0 20px rgba(96, 165, 250, 0.5);
+            letter-spacing: -2px;
+        }
+        
+        .date-display {
+            font-size: 1.6rem;
+            color: var(--accent-blue);
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+        
+        .analog-clock {
+            width: 320px;
+            height: 320px;
+            border: 3px solid var(--accent-blue);
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto 3rem;
+            background: 
+                radial-gradient(circle at center, 
+                    rgba(30, 58, 138, 0.2) 0%,
+                    rgba(15, 23, 42, 0.8) 70%,
+                    rgba(30, 64, 175, 0.9) 100%);
+            box-shadow: 
+                0 0 30px rgba(96, 165, 250, 0.3),
+                0 0 60px rgba(30, 58, 138, 0.2) inset;
+        }
+        
+        .clock-hand {
+            position: absolute;
+            background: linear-gradient(to top, var(--accent-blue), #f1f5f9);
+            transform-origin: bottom center;
+            left: 50%;
+            bottom: 50%;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+            transition: transform 0.1s ease-out;
+        }
+        
+        .hour-hand {
+            width: 8px;
+            height: 90px;
+            margin-left: -4px;
+            border-radius: 4px;
+            background: linear-gradient(to top, var(--secondary-blue), #f1f5f9);
+        }
+        
+        .minute-hand {
+            width: 5px;
+            height: 130px;
+            margin-left: -2.5px;
+            border-radius: 3px;
+            background: linear-gradient(to top, var(--accent-blue), #f1f5f9);
+        }
+        
+        .second-hand {
+            width: 2px;
+            height: 140px;
+            margin-left: -1px;
+            background: linear-gradient(to top, #ef4444, #fca5a5);
+            border-radius: 1px;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+        }
+        
+        .clock-center {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle, #f1f5f9 0%, var(--secondary-blue) 100%);
+            border: 3px solid var(--accent-blue);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(96, 165, 250, 0.7);
+        }
+        
+        .clock-numbers {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .clock-number {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--light-blue);
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+        }
+        
+        .btn-modern {
+            border-radius: 50px;
+            padding: 14px 32px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-modern:hover::before {
+            left: 100%;
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                0 0 20px rgba(96, 165, 250, 0.4);
+        }
+        
+        .btn-primary.btn-modern {
+            background: linear-gradient(135deg, var(--secondary-blue), var(--accent-blue));
+            color: white;
+        }
+        
+        .btn-success.btn-modern {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+        }
+        
+        .alarm-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .alarm-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .config-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 2rem;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #3498db;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .colombia-flag {
+            background: linear-gradient(to bottom, #fcdd09 33.33%, #034ea2 33.33%, #034ea2 66.66%, #ce1126 66.66%);
+            width: 30px;
+            height: 20px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .digital-clock {
+                font-size: 2.5rem;
+            }
+            
+            .analog-clock {
+                width: 250px;
+                height: 250px;
+            }
+        }
+        
+        /* Modern form styles (light glass inputs; selects are styled separately) */
+        .form-control.modern {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            padding: 12px 16px;
+        }
+
+        .form-control.modern:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+            color: white;
+        }
+
+        .form-control.modern::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-select.modern {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            color: #ffffff;
+            backdrop-filter: blur(6px);
+            padding: 12px 16px;
+            position: relative;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Custom caret for selects (visible on dark backgrounds) */
+        .form-select.modern::after {
+            content: '\25BC'; /* down-pointing triangle */
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #ffffff;
+            font-size: 0.7rem;
+            opacity: 0.9;
+        }
+
+        /* Ensure native option items also render dark with white text */
+        select.form-select.modern option,
+        select.form-select option,
+        select option {
+            background: #000000;
+            color: #ffffff;
+        }
+        
+        .form-check-input.modern {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .form-check-input.modern:checked {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        
+        /* Panel styles */
+        .card.modern {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card.modern:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.25),
+                0 0 20px rgba(96, 165, 250, 0.2);
+        }
+        
+        .card-header.modern {
+            background: rgba(96, 165, 250, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px 20px 0 0 !important;
+            padding: 20px 24px;
+        }
+        
+        .card-body.modern {
+            padding: 24px;
+        }
+        
+        .card-title.modern {
+            color: var(--light-blue);
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+            margin-bottom: 16px;
+        }
+        
+        .text-light {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        /* Sync indicator styles */
+        .sync-indicator {
+            color: var(--accent-blue);
+            animation: syncPulse 2s infinite;
+        }
+        
+        @keyframes syncPulse {
+            0% { opacity: 0.5; transform: rotate(0deg); }
+            50% { opacity: 1; transform: rotate(180deg); }
+            100% { opacity: 0.5; transform: rotate(360deg); }
+        }
+        
+        /* Layout improvements for sidebar */
+        @media (min-width: 992px) {
+            .col-lg-8 {
+                padding-right: 2rem;
+            }
+            
+            .col-lg-4 {
+                padding-left: 1rem;
+            }
+        }
+        
+        /* Improved config panel for narrow space */
+        .config-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .config-panel h4 {
+            color: var(--light-blue);
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+        }
+        
+        /* Advanced Options Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(96, 165, 250, 0.3);
+            z-index: 1050;
+            transition: left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Custom scrollbar for the sidebar - WebKit browsers */
+        #advancedSidebar::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #advancedSidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+        }
+
+        #advancedSidebar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(96,165,250,0.18), rgba(96,165,250,0.28));
+            border-radius: 8px;
+            border: 2px solid rgba(0, 0, 0, 0.25);
+        }
+
+        #advancedSidebar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(96,165,250,0.28), rgba(96,165,250,0.42));
+        }
+
+        /* Firefox scrollbar */
+        #advancedSidebar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96,165,250,0.28) rgba(255,255,255,0.02);
+        }
+        
+        .sidebar.open {
+            left: 0;
+        }
+
+        /* Shift main content to the right when sidebar opens for a page-wide opening effect */
+        @media (min-width: 992px) {
+            .container-fluid {
+                transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+                will-change: transform;
+            }
+
+            body.sidebar-open .container-fluid {
+                transform: translateX(320px);
+            }
+        }
+
+        /* Smooth overlay fade */
+        .sidebar-overlay {
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(96, 165, 250, 0.1);
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .btn-advanced-options {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1030;
+            background: linear-gradient(135deg, var(--secondary-blue), var(--accent-blue));
+            border: none;
+            border-radius: 50px;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 
+                0 4px 15px rgba(96, 165, 250, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .btn-advanced-options:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 20px rgba(96, 165, 250, 0.6),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+            color: white;
+        }
+        
+        .btn-close-sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-close-sidebar:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        /* Alarm Modal Styles */
+        #alarmModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+        }
+        
+        .alarm-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: alarmPulse 1s infinite;
+        }
+        
+        .alarm-modal-content {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            max-width: 400px;
+            animation: modalBounce 0.5s ease-out;
+        }
+        
+        .alarm-modal-content h3 {
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        
+        .alarm-modal-content p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        
+        @keyframes alarmPulse {
+            0% { background: rgba(0, 0, 0, 0.8); }
+            50% { background: rgba(96, 165, 250, 0.3); }
+            100% { background: rgba(0, 0, 0, 0.8); }
+        }
+        
+        @keyframes modalBounce {
+            0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(2deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Advanced Options Button -->
+    <button class="btn-advanced-options" onclick="toggleSidebar()">
+        <i class="bi bi-gear-fill me-2"></i>
+        Opciones Avanzadas
+    </button>
+    
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    
+    <!-- Advanced Options Sidebar -->
+    <div class="sidebar" id="advancedSidebar">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="text-white mb-0">
+                    <i class="bi bi-sliders me-2"></i>
+                    Opciones Avanzadas
+                </h5>
+                <button class="btn btn-close-sidebar" onclick="closeSidebar()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="sidebar-content">
+            <!-- Alarms Section -->
+            <div class="config-panel mb-4">
+                <h4 class="mb-4">
+                    <i class="bi bi-alarm text-primary"></i>
+                    Alarmas Activas
+                </h4>
+                
+                <!-- New Alarm Form -->
+                <div class="card modern alarm-card mb-3">
+                    <div class="card-body modern">
+                        <h6 class="card-title modern">Nueva Alarma</h6>
+                        
+                        <!-- Time Input Row -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-4">
+                                <input type="number" class="form-control modern" id="alarmHour" min="1" max="12" placeholder="12" value="12">
+                            </div>
+                            <div class="col-4">
+                                <input type="number" class="form-control modern" id="alarmMinute" min="0" max="59" placeholder="34" value="00">
+                            </div>
+                            <div class="col-4">
+                                <select class="form-select modern" id="alarmPeriod">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Date Picker Row (one-off alarm) -->
+                        <div class="row g-2 mb-2">
+                            <div class="col-12">
+                                        <input id="alarmDate" type="date" class="form-control modern" />
+                            </div>
+                        </div>
+                        
+                        <!-- Label and Create Button -->
+                        <div class="row g-2">
+                            <div class="col-9">
+                                <input type="text" class="form-control modern" id="alarmLabel" placeholder="Etiqueta (opcional)">
+                            </div>
+                            <div class="col-3">
+                                <button class="btn btn-primary btn-modern btn-sm w-100" onclick="createAlarm()">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Audio unlock / test -->
+                <div class="card modern alarm-card mb-3">
+                    <div class="card-body modern">
+                        <h6 class="card-title modern">Prueba de Audio</h6>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-light" onclick="unlockAudio()">Interactuar para permitir audio</button>
+                            <button class="btn btn-primary" onclick="playAlarmSound()">Reproducir sonido de prueba</button>
+                        </div>
+                        <div class="small text-white-50 mt-2">Si el navegador bloquea sonido, haga clic en "Interactuar para permitir audio" primero.</div>
+                    </div>
+                </div>
+                
+                <!-- Active Alarms list moved to modal (open via 'Ver Alarmas' button) -->
+            </div>
+            
+            <!-- Configuration Section -->
+            <div class="config-panel">
+                <h4 class="mb-4">
+                    <i class="bi bi-gear text-primary"></i>
+                    Configuración
+                </h4>
+                
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label>Mostrar Segundos</label>
+                            <label class="switch">
+                                <input type="checkbox" id="showSeconds" {% if config.show_seconds %}checked{% endif %} onchange="updateConfig()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label>Mostrar Reloj Analógico</label>
+                            <label class="switch">
+                                <input type="checkbox" id="showAnalogClock" {% if config.show_analog_clock %}checked{% endif %} onchange="updateConfig()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label>Mostrar Reloj Digital</label>
+                            <label class="switch">
+                                <input type="checkbox" id="showDigitalClock" {% if config.show_digital_clock %}checked{% endif %} onchange="updateConfig()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label>Sincronización Automática</label>
+                            <label class="switch">
+                                <input type="checkbox" id="autoSync" {% if config.auto_sync %}checked{% endif %} onchange="updateConfig()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-top">
+                    <a href="{% url 'clock:statistics' %}" class="btn btn-outline-primary btn-modern w-100">
+                        <i class="bi bi-graph-up"></i>
+                        Ver Estadísticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-5">
+        <div class="row">
+            <!-- Header -->
+            <div class="col-12 text-center mb-5">
+                <h1 class="text-white mb-3" style="font-weight:700; letter-spacing:-1px;">
+                    Circular Clock — Bogotá
+                    <span id="syncIndicator" class="sync-indicator ms-2" style="display: none;">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </span>
+                </h1>
+                <p class="text-white-50">Hora de Bogotá (Colombia) — Implementación con listas circulares • Auto-sincronización</p>
+            </div>
+            
+            <!-- Clock Display (Full Width) -->
+            <div class="col-12">
+                <!-- Main Clock Display -->
+                <div class="clock-container p-5 mb-4">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6">
+                            <!-- Digital Clock -->
+                            <div class="text-center" id="digitalClockContainer">
+                                <div class="digital-clock" id="digitalClock">
+                                    {{ clock_data.hours|stringformat:"02d" }}:{{ clock_data.minutes|stringformat:"02d" }}{% if config.show_seconds %}:{{ clock_data.seconds|stringformat:"02d" }}{% endif %}
+                                    {% if config.time_format == '12h' %}<span class="fs-3">{{ clock_data.period }}</span>{% endif %}
+                                </div>
+                                <div class="date-display" id="dateDisplay">
+                                    {{ clock_data.weekday }}, {{ current_time|date:"d F Y" }}
+                                </div>
+                                
+                                <!-- Control Buttons -->
+                                <div class="mt-3">
+                                    <button class="btn btn-primary btn-modern me-3" onclick="toggleFormat()">
+                                        <i class="bi bi-clock"></i>
+                                        {{ config.time_format|upper }}
+                                    </button>
+                                    <button class="btn btn-outline-light btn-modern" onclick="openAlarmsModal()">
+                                        <i class="bi bi-bell-fill me-2"></i>
+                                        Ver Alarmas
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <!-- Analog Clock -->
+                            <div id="analogClockContainer">
+                                <div class="analog-clock" id="analogClock">
+                                    <div class="clock-numbers">
+                                        <div class="clock-number" style="top: 10px; left: 50%; transform: translateX(-50%);">12</div>
+                                        <div class="clock-number" style="top: 50%; right: 10px; transform: translateY(-50%);">3</div>
+                                        <div class="clock-number" style="bottom: 10px; left: 50%; transform: translateX(-50%);">6</div>
+                                        <div class="clock-number" style="top: 50%; left: 10px; transform: translateY(-50%);">9</div>
+                                    </div>
+                                    <div class="clock-hand hour-hand" id="hourHand"></div>
+                                    <div class="clock-hand minute-hand" id="minuteHand"></div>
+                                    {% if config.show_seconds %}
+                                    <div class="clock-hand second-hand" id="secondHand"></div>
+                                    {% endif %}
+                                    <div class="clock-center"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+                            <!-- Active alarms moved to sidebar (Advanced Options) -->
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-4">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Alarms Modal -->
+            <div class="modal fade" id="alarmsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(8px); color: #e6eef8;">
+                        <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.04)">
+                            <h5 class="modal-title">Alarmas</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div id="alarmsModalContent">Cargando...</div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+    
+    <script>
+        let currentTime = {
+            hours: parseInt('{{ clock_data.hours }}'),
+            minutes: parseInt('{{ clock_data.minutes }}'),
+            seconds: parseInt('{{ clock_data.seconds }}'),
+            weekday: '{{ clock_data.weekday }}',
+            period: '{{ clock_data.period }}'
+        };
+        
+        const clockConfig = {
+            time_format: '{{ config.time_format }}',
+            show_seconds: {{ config.show_seconds|yesno:"true,false" }},
+            show_analog_clock: {{ config.show_analog_clock|yesno:"true,false" }},
+            show_digital_clock: {{ config.show_digital_clock|yesno:"true,false" }}
+        };
+        
+        // Update clock every second
+        function updateClock() {
+            fetch('/api/current-time/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                            // normalize engine keys to front-end shape
+                            const t = data.time;
+                            currentTime = {
+                                hours: t.hour !== undefined ? t.hour : (t.hours || 0),
+                                minutes: t.minute !== undefined ? t.minute : (t.minutes || 0),
+                                seconds: t.second !== undefined ? t.second : (t.seconds || 0),
+                                weekday: t.day || t.weekday || currentTime.weekday,
+                                period: t.am_pm || t.period || currentTime.period
+                            };
+                            console.debug('updateClock: received time', currentTime);
+                            updateDisplays();
+                        }
+                })
+                .catch(error => {
+                    console.error('Error updating clock:', error);
+                    // Fallback to local time increment
+                    currentTime.seconds++;
+                    if (currentTime.seconds >= 60) {
+                        currentTime.seconds = 0;
+                        currentTime.minutes++;
+                        if (currentTime.minutes >= 60) {
+                            currentTime.minutes = 0;
+                            currentTime.hours++;
+                            if (currentTime.hours >= 24) {
+                                currentTime.hours = 0;
+                            }
+                        }
+                    }
+                    updateDisplays();
+                });
+        }
+        
+        function updateDisplays() {
+            // Update clock visibility based on config
+            const digitalClockContainer = document.getElementById('digitalClockContainer');
+            const analogClockContainer = document.getElementById('analogClockContainer');
+            const digitalClock = document.getElementById('digitalClock');
+            
+            // Handle visibility
+            if (digitalClockContainer) {
+                digitalClockContainer.style.display = clockConfig.show_digital_clock ? 'block' : 'none';
+            }
+            if (analogClockContainer) {
+                analogClockContainer.style.display = clockConfig.show_analog_clock ? 'block' : 'none';
+            }
+            
+            // Update digital clock time
+            if (digitalClock && clockConfig.show_digital_clock) {
+                let timeStr = `${String(currentTime.hours).padStart(2, '0')}:${String(currentTime.minutes).padStart(2, '0')}`;
+                
+                if (clockConfig.show_seconds) {
+                    timeStr += `:${String(currentTime.seconds).padStart(2, '0')}`;
+                }
+                
+                if (clockConfig.time_format === '12h' && currentTime.period) {
+                    timeStr += `<span class="fs-3">${currentTime.period}</span>`;
+                }
+                
+                digitalClock.innerHTML = timeStr;
+                console.debug('updateDisplays: digital shown=', clockConfig.show_digital_clock, 'time=', timeStr);
+            }
+            
+            // Update analog clock
+            if (clockConfig.show_analog_clock) {
+                updateAnalogClock();
+                console.debug('updateDisplays: analog updated');
+            } else {
+                console.debug('updateDisplays: analog hidden');
+            }
+
+            // Update date display (numeric dd/mm/YYYY) alongside weekday
+            const dateDisplay = document.getElementById('dateDisplay');
+            if (dateDisplay) {
+                // Use client local date to show numeric date in dd/mm/YYYY format
+                const now = new Date();
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                // currentTime.weekday should contain a readable weekday name provided by the backend
+                const weekday = currentTime.weekday || '';
+                dateDisplay.innerHTML = `${weekday}, ${dd}/${mm}/${yyyy}`;
+            }
+        }
+        
+        function updateAnalogClock() {
+            const hourHand = document.getElementById('hourHand');
+            const minuteHand = document.getElementById('minuteHand');
+            const secondHand = document.getElementById('secondHand');
+            
+            // Calculate angles
+            const hours = currentTime.hours || 0;
+            const minutes = currentTime.minutes || 0;
+            const seconds = currentTime.seconds || 0;
+            
+            const hourDegrees = ((hours % 12) * 30) + (minutes * 0.5);
+            const minuteDegrees = minutes * 6;
+            const secondDegrees = seconds * 6;
+            
+            // Update hand positions
+            if (hourHand) {
+                hourHand.style.transform = `rotate(${hourDegrees}deg)`;
+            }
+            if (minuteHand) {
+                minuteHand.style.transform = `rotate(${minuteDegrees}deg)`;
+            }
+            if (secondHand && clockConfig.show_seconds) {
+                secondHand.style.transform = `rotate(${secondDegrees}deg)`;
+            }
+            
+            console.log(`Clock: ${hours}:${minutes}:${seconds} - Angles: H:${hourDegrees}° M:${minuteDegrees}° S:${secondDegrees}°`);
+        }
+        
+        function toggleFormat() {
+            fetch('/api/toggle-format/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    clockConfig.time_format = data.new_format;
+                    location.reload();
+                }
+            });
+        }
+        
+        // Sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('advancedSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            const opened = sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+            // Toggle a class on body so we can apply a page-wide shift
+            if (opened) {
+                document.body.classList.add('sidebar-open');
+            } else {
+                document.body.classList.remove('sidebar-open');
+            }
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('advancedSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+            document.body.classList.remove('sidebar-open');
+        }
+        
+        // Auto-sync functionality
+        function autoSyncTime() {
+            const syncIndicator = document.getElementById('syncIndicator');
+            syncIndicator.style.display = 'inline';
+            
+            fetch('/api/sync-time/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Auto-sync completed successfully');
+                    currentTime = data.current_time;
+                    updateDisplays();
+                } else {
+                    console.warn('Auto-sync failed:', data.error);
+                }
+            })
+            .catch(error => {
+                console.warn('Auto-sync error:', error);
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    syncIndicator.style.display = 'none';
+                }, 3000); // Hide after 3 seconds
+            });
+        }
+        
+        function syncTime() {
+            fetch('/api/sync-time/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Hora sincronizada exitosamente', 'success');
+                    currentTime = data.current_time;
+                    updateDisplays();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            });
+        }
+
+        // Create alarm from inline form (supports calendar date via alarmDate)
+        function createAlarm() {
+            const hour = parseInt(document.getElementById('alarmHour').value || '12');
+            const minute = parseInt(document.getElementById('alarmMinute').value || '0');
+            const period = document.getElementById('alarmPeriod').value || 'AM';
+            const alarmDate = document.getElementById('alarmDate').value || null; // YYYY-MM-DD
+            const label = document.getElementById('alarmLabel').value || 'Alarma';
+
+            // Basic validation
+            if (!(hour >=1 && hour <=12) || !(minute >=0 && minute <=59)) {
+                showToast('Hora o minuto inválido', 'error');
+                return;
+            }
+
+            fetch('/api/alarms/create/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    hour: hour,
+                    minute: minute,
+                    period: period,
+                    alarm_date: alarmDate,
+                    label: label
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // clear form
+                    document.getElementById('alarmDate').value = '';
+                    document.getElementById('alarmLabel').value = '';
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast(data.error || 'Error al crear alarma', 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('Error al crear alarma', 'error');
+            });
+        }
+        
+        
+        
+        function deleteAlarm(alarmId) {
+            if (confirm('¿Está seguro de eliminar esta alarma?')) {
+                fetch(`/api/alarms/${alarmId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                        // Append a local log so activity remains after deletion
+                        appendRecentActivityLocal({
+                            alarm_id: alarmId,
+                            title: 'Alarma (eliminada)',
+                            time: '',
+                            triggered_at: new Date().toISOString(),
+                            status: 'Eliminada'
+                        });
+                        // If the modal is open, refresh it. Otherwise remove inline element
+                        const modalEl = document.getElementById('alarmsModal');
+                        if (modalEl && modalEl.classList.contains('show')) {
+                            openAlarmsModal();
+                        } else {
+                            const el = document.querySelector(`[data-alarm-id="${alarmId}"]`);
+                            if (el) el.remove();
+                        }
+                    } else {
+                        showToast(data.error, 'error');
+                    }
+                });
+            }
+        }
+        
+        function toggleAlarm(alarmId) {
+            fetch(`/api/alarms/${alarmId}/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // Refresh modal if it's open
+                    const modalEl = document.getElementById('alarmsModal');
+                    if (modalEl && modalEl.classList.contains('show')) {
+                        openAlarmsModal();
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    showToast(data.error, 'error');
+                }
+            });
+        }
+        
+        function updateConfig() {
+            const showSeconds = document.getElementById('showSeconds').checked;
+            const showAnalogClock = document.getElementById('showAnalogClock').checked;
+            const showDigitalClock = document.getElementById('showDigitalClock').checked;
+            const autoSync = document.getElementById('autoSync').checked;
+            
+            fetch('/api/configuration/update/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    show_seconds: showSeconds,
+                    show_analog_clock: showAnalogClock,
+                    show_digital_clock: showDigitalClock,
+                    auto_sync: autoSync
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // Update local config
+                    clockConfig.show_seconds = showSeconds;
+                    clockConfig.show_analog_clock = showAnalogClock;
+                    clockConfig.show_digital_clock = showDigitalClock;
+                    // Update display immediately
+                    updateDisplays();
+                    // Reload to apply all changes
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.error, 'error');
+                }
+            });
+        }
+        
+        function showToast(message, type) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastId = 'toast-' + Date.now();
+            const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            
+            const toast = document.createElement('div');
+            toast.innerHTML = `
+                <div class="toast ${bgClass} text-white" id="${toastId}" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(document.getElementById(toastId));
+            bsToast.show();
+        }
+        
+        function getCsrfToken() {
+            // Get CSRF token from meta tag
+            const metaToken = document.querySelector('meta[name="csrf-token"]');
+            if (metaToken) {
+                return metaToken.getAttribute('content');
+            }
+            // Fallback: get from form
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                return csrfToken.value;
+            }
+            return '';
+        }
+        
+        // Alarm sound system
+        let alarmAudio = null;
+        let alarmTimeout = null;
+        
+        function playAlarmSound() {
+            // Create audio context for alarm sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Try to resume audio context (some browsers start in 'suspended' state when not user-initiated)
+            audioContext.resume().then(() => {
+                try {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Set up alarm tone (pleasant wake-up sound)
+                    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+                    oscillator.type = 'sine';
+
+                    // Volume control
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+
+                    // Start the sound
+                    oscillator.start(audioContext.currentTime);
+
+                    // Create pulsing effect
+                    let pulseInterval = setInterval(() => {
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.3);
+                    }, 1000);
+
+                    // Stop after 2 minutes (120 seconds)
+                    alarmTimeout = setTimeout(() => {
+                        try { oscillator.stop(); } catch (e) {}
+                        clearInterval(pulseInterval);
+                        try { audioContext.close(); } catch (e) {}
+                        alarmAudio = null;
+                        hideAlarmModal();
+                    }, 120000); // 2 minutes
+
+                    // Store references for manual stop
+                    alarmAudio = {
+                        oscillator: oscillator,
+                        audioContext: audioContext,
+                        pulseInterval: pulseInterval
+                    };
+
+                    showAlarmModal();
+                } catch (err) {
+                    console.error('Alarm audio failed', err);
+                    showToast('No se pudo iniciar el audio de la alarma. Interactúe con la página para permitir sonido.', 'error');
+                }
+            }).catch((err) => {
+                console.warn('AudioContext resume failed', err);
+                showToast('El navegador bloqueó el audio: interactúe con la página para permitir sonido.', 'error');
+            });
+        }
+        
+        function stopAlarmSound() {
+            if (alarmAudio) {
+                alarmAudio.oscillator.stop();
+                clearInterval(alarmAudio.pulseInterval);
+                alarmAudio.audioContext.close();
+                alarmAudio = null;
+            }
+            if (alarmTimeout) {
+                clearTimeout(alarmTimeout);
+                alarmTimeout = null;
+            }
+            // Notify server that user dismissed the alarm so it doesn't replay
+            try {
+                // If we have a last triggered alarm id saved on window, send dismiss
+                if (window._lastTriggeredAlarmId) {
+                    fetch('/api/alarms/dismiss/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ alarm_id: window._lastTriggeredAlarmId, silence_minutes: 0 })
+                    });
+                    window._lastTriggeredAlarmId = null;
+                }
+            } catch (e) {}
+            hideAlarmModal();
+        }
+        
+        function showAlarmModal() {
+            // Create alarm modal if it doesn't exist
+            let modal = document.getElementById('alarmModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'alarmModal';
+                modal.innerHTML = `
+                    <div class="alarm-modal-overlay">
+                        <div class="alarm-modal-content">
+                            <h3><i class="bi bi-alarm"></i> ¡Alarma Activada!</h3>
+                            <p>La alarma está sonando</p>
+                            <button class="btn btn-primary btn-modern" onclick="stopAlarmSound()">
+                                <i class="bi bi-stop-circle"></i> Detener Alarma
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            modal.style.display = 'block';
+        }
+        
+        function hideAlarmModal() {
+            const modal = document.getElementById('alarmModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Unlock audio on user interaction (some browsers require a user gesture)
+        function unlockAudio() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                ctx.resume().then(() => {
+                    // close immediately; it's just to satisfy the user gesture requirement
+                    try { ctx.close(); } catch (e) {}
+                    window._audioUnlocked = true;
+                    showToast('Audio desbloqueado — ahora las alarmas pueden sonar', 'success');
+                }).catch((err) => {
+                    console.warn('unlockAudio resume failed', err);
+                    showToast('No se pudo desbloquear audio. Intente interactuar nuevamente.', 'error');
+                });
+            } catch (e) {
+                console.warn('unlockAudio failed', e);
+                showToast('Su navegador no permite inicializar audio desde aquí.', 'error');
+            }
+        }
+        
+        function checkAlarms() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentDay = now.getDay() === 0 ? 6 : now.getDay() - 1; // Convert Sunday=0 to our format
+            
+            // Get current time in 12h format
+            let displayHour = currentHour;
+            let period = 'AM';
+            
+            if (currentHour === 0) {
+                displayHour = 12;
+            } else if (currentHour > 12) {
+                displayHour = currentHour - 12;
+                period = 'PM';
+            } else if (currentHour === 12) {
+                period = 'PM';
+            }
+            
+            // Check each alarm
+            fetch('/api/check-alarms/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    hour: displayHour,
+                    minute: currentMinute,
+                    period: period,
+                    day: currentDay
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.alarm_triggered) {
+                    // remember last triggered alarm id so we can dismiss it when user stops
+                    if (data.triggered_alarms && data.triggered_alarms.length) {
+                        window._lastTriggeredAlarmId = data.triggered_alarms[0].id;
+                    }
+                    playAlarmSound();
+                    // Persist triggered alarms to localStorage so activity remains after deletions
+                    try {
+                        if (data.triggered_alarms && Array.isArray(data.triggered_alarms)) {
+                            data.triggered_alarms.forEach(a => {
+                                appendRecentActivityLocal({
+                                    alarm_id: a.id,
+                                    title: a.title,
+                                    time: a.time,
+                                    triggered_at: new Date().toISOString(),
+                                    status: 'Disparada',
+                                });
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Could not persist triggered alarm locally', e);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking alarms:', error);
+            });
+        }
+        
+        // Start clock updates
+        setInterval(updateClock, 1000);
+        
+        // Check alarms: run immediately and align to minute boundaries for precise triggers
+        function scheduleAlarmChecks() {
+            // Run an immediate check
+            checkAlarms();
+
+            // Calculate milliseconds until next full minute
+            const now = new Date();
+            const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+            // Schedule the first aligned check, then run every minute
+            setTimeout(() => {
+                checkAlarms();
+                setInterval(checkAlarms, 60000);
+            }, msToNextMinute);
+        }
+        
+        // Auto-sync every 5 minutes (300000 milliseconds)
+        setInterval(autoSyncTime, 300000);
+        
+        // Initialize analog clock immediately
+        updateAnalogClock();
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAnalogClock();
+            // Initial sync when page loads
+            autoSyncTime();
+            // Start aligned alarm checks
+            scheduleAlarmChecks();
+            // Set minimum date for alarmDate picker to today to prevent past dates selection
+            try {
+                const alarmDateInput = document.getElementById('alarmDate');
+                if (alarmDateInput) {
+                    const now = new Date();
+                    const yyyy = now.getFullYear();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const dd = String(now.getDate()).padStart(2, '0');
+                    alarmDateInput.min = `${yyyy}-${mm}-${dd}`;
+                }
+            } catch (e) {
+                console.warn('Could not set min for alarmDate picker', e);
+            }
+        });
+
+        // Modal control state to avoid multiple instances and to refresh live while open
+        window._alarmsModal = window._alarmsModal || {
+            instance: null,
+            refreshIntervalId: null,
+            isOpen: false
+        };
+
+        // Render alarms into the modal content element
+        function renderAlarmsList(alarms) {
+            if (!alarms || alarms.length === 0) {
+                document.getElementById('alarmsModalContent').innerHTML = '<div class="text-white-50 p-3">No hay alarmas programadas</div>';
+                return;
+            }
+            const listHtml = alarms.map(a => `
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 rounded" style="background: rgba(255,255,255,0.02)">
+                    <div>
+                        <strong>${a.time}</strong>
+                        <div class="small text-white-50">${a.label || 'Alarma'}</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleAlarm(${a.id})">${a.is_active ? 'Desactivar' : 'Activar'}</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAlarm(${a.id})">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('alarmsModalContent').innerHTML = listHtml;
+        }
+
+        // Fetch alarms from server and render; returns a Promise that resolves to the alarms array
+        function fetchAlarmsForModal() {
+            return fetch('/api/alarms/list/')
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) return data.alarms || [];
+                    return [];
+                }).catch(err => {
+                    console.error('Error fetching alarms for modal', err);
+                    return [];
+                });
+        }
+
+        // Open the alarms modal and set up live refresh while it's open. The modal will only be created once.
+        function openAlarmsModal() {
+            const modalEl = document.getElementById('alarmsModal');
+            if (!modalEl) return console.warn('No alarms modal element found');
+
+            // If already open, just refresh content immediately
+            if (window._alarmsModal.isOpen) {
+                fetchAlarmsForModal().then(renderAlarmsList);
+                return;
+            }
+
+            // Create modal instance once
+            if (!window._alarmsModal.instance) {
+                window._alarmsModal.instance = new bootstrap.Modal(modalEl);
+
+                // Hook into modal hide to clear interval and mark closed
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    if (window._alarmsModal.refreshIntervalId) {
+                        clearInterval(window._alarmsModal.refreshIntervalId);
+                        window._alarmsModal.refreshIntervalId = null;
+                    }
+                    window._alarmsModal.isOpen = false;
+                });
+            }
+
+            // Fetch and show content, only open if there are alarms
+            fetchAlarmsForModal().then(alarms => {
+                if (!alarms || alarms.length === 0) {
+                    showToast('No hay alarmas programadas', 'error');
+                    return;
+                }
+                renderAlarmsList(alarms);
+                window._alarmsModal.instance.show();
+                window._alarmsModal.isOpen = true;
+
+                // Set up periodic refresh every 10 seconds while modal is open
+                if (window._alarmsModal.refreshIntervalId) clearInterval(window._alarmsModal.refreshIntervalId);
+                window._alarmsModal.refreshIntervalId = setInterval(() => {
+                    // Only refresh if modal still reported open
+                    if (!window._alarmsModal.isOpen) return;
+                    fetchAlarmsForModal().then(renderAlarmsList);
+                }, 10000);
+            });
+        }
+
+        // Local storage for recent activity so it persists when alarms are deleted
+        function appendRecentActivityLocal(log) {
+            try {
+                const key = 'recent_activity_logs_v1';
+                const raw = localStorage.getItem(key);
+                const arr = raw ? JSON.parse(raw) : [];
+                arr.unshift(log);
+                // Keep only latest 50
+                localStorage.setItem(key, JSON.stringify(arr.slice(0,50)));
+            } catch (e) {
+                console.warn('Could not append recent activity locally', e);
+            }
+        }
+
+        function getRecentActivityLocal() {
+            try {
+                const raw = localStorage.getItem('recent_activity_logs_v1');
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+    </script>
+</body>
+</html>
